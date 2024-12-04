@@ -1,0 +1,240 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// Song struct
+typedef struct Song {
+    char title[100];
+    char singer[100];
+    struct Song *next;
+} Song;
+
+// Fungsi
+Song* create_song(const char *title, const char *singer);
+void add_song(Song **head, const char *title, const char *singer);
+void display_playlist(Song *head);
+void remove_song(Song **head, const char *title);
+void sort_playlist_by_title(Song **head);
+void sort_playlist_by_singer(Song **head);
+void save_playlist_to_file(Song *head, const char *filename);
+
+int main() {
+    Song *playlist = NULL;
+    int choice;
+    char title[100], singer[100];
+    char filename[100];
+
+    do {
+        printf("\n");
+        printf("1. Add A Song\n");
+        printf("2. Display The Playlist\n");
+        printf("3. Remove A Song\n");
+        printf("4. Sort Song by Title\n");
+        printf("5. Sort Song by Singer\n");
+        printf("6. Save Playlist to File\n");
+        printf("7. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar();  // Consume newline left in the buffer
+
+        switch (choice) {
+            case 1:
+                printf("Enter song title: ");
+                fgets(title, 100, stdin);
+                title[strcspn(title, "\n")] = '\0'; // Remove newline
+                printf("Enter singer: ");
+                fgets(singer, 100, stdin);
+                singer[strcspn(singer, "\n")] = '\0'; // Remove newline
+                add_song(&playlist, title, singer);
+                break;
+            case 2:
+                display_playlist(playlist);
+                break;
+            case 3:
+                printf("Title song you want to remove :");
+                fgets(title, 100, stdin);
+                title[strcspn(title, "\n")] = '\0';
+                remove_song(&playlist, title);
+                printf("Song removed\n");
+                break;
+            case 4:
+                sort_playlist_by_title(&playlist);
+                display_playlist(playlist);
+                break;
+            case 5:
+                sort_playlist_by_singer(&playlist);
+                display_playlist(playlist);
+                break;
+            case 6:
+                //save playlist
+            default:
+                printf("Thank you for using");
+        }
+    } while (choice != 7);
+
+    return 0;
+}
+
+// Create a new song
+Song* create_song(const char *title, const char *singer) {
+    // Allocate memory for the new song
+    Song* new_song = (Song*)malloc(sizeof(Song));
+    if (new_song == NULL) {
+        // Handle memory allocation failure
+        printf("Memory allocation failed!\n");
+        return NULL;
+    }
+
+    // Allocate memory for the title and singer strings
+    *new_song->title = (char)malloc(strlen(title) + 1);  // +1 for null-terminator
+    *new_song->singer = (char)malloc(strlen(singer) + 1); // +1 for null-terminator1
+
+    if (new_song->title == NULL || new_song->singer == NULL) {
+        // Handle memory allocation failure for title or singer
+        printf("Memory allocation for title or singer failed!\n");
+        free(new_song);  // Free the previously allocated memory
+        return NULL;
+    }
+
+    // Copy the title and singer into the allocated memory
+    strcpy(new_song->title, title);
+    strcpy(new_song->singer, singer);
+
+    // Set the next pointer to NULL
+    new_song->next = NULL;
+
+    return new_song;
+}
+
+// Add a song to the playlist
+void add_song(Song **head, const char *title, const char *singer) {
+    Song *new_song = create_song(title, singer);
+    new_song->next = *head;
+    *head = new_song;
+    printf("Song added: %s by %s\n", title, singer);
+}
+
+// Display all songs in the playlist
+void display_playlist(Song *head) {
+    if (head == NULL) {
+        printf("Playlist is empty.\n");
+        return;
+    }
+    printf("\nPlaylist:\n");
+    int index = 1;
+    while (head) {
+        printf("%d. %s by %s\n", index++, head->title, head->singer);
+        head = head->next;
+    }
+}
+
+void remove_song(Song **head, const char *title) {
+     if (*head == NULL) {
+        printf("The list is empty, no song to remove.\n");
+        return;
+    }
+
+    if (strcmp((*head)->title, title) == 0) {
+        Song *temp = *head;
+        *head = (*head)->next;
+        free(temp);
+        printf("Removed song: %s\n", title);
+        return;
+    }
+
+    Song *current = *head;
+    while (current->next != NULL) {
+        if (strcmp(current->next->title, title) == 0) {
+            Song *temp = current->next;
+            current->next = current->next->next;
+            free(temp);
+            printf("Removed song: %s\n", title);
+            return;
+        }
+        current = current->next;
+    }
+
+    printf("Song with title \"%s\" not found.\n", title);
+}
+
+
+void sort_playlist_by_title(Song **head) {
+if (*head == NULL || (*head)->next == NULL) {
+        return;  // List is empty or contains only one song
+    }
+
+    int swapped;
+    Song *current;
+    Song *prev = NULL;
+    Song *temp = NULL;
+
+    // Perform Bubble Sort on the linked list
+    do {
+        swapped = 0;
+        current = *head;
+
+        // Traverse the list and swap adjacent nodes if they are in the wrong order
+        while (current->next != NULL) {
+            if (strcmp(current->title, current->next->title) > 0) {
+                // Swap the nodes
+                Song *temp_node = current->next;
+                current->next = temp_node->next;
+                temp_node->next = current;
+
+                // If the current node is the head, update the head pointer
+                if (prev == NULL) {
+                    *head = temp_node;
+                } else {
+                    prev->next = temp_node;
+                }
+
+                swapped = 1;
+                current = temp_node;  // Move current to the next node
+            }
+            prev = current;
+            current = current->next;
+        }
+    } while (swapped);
+}
+
+void sort_playlist_by_singer(Song **head) {
+if (*head == NULL || (*head)->next == NULL) {
+        return;  // List is empty or has only one song
+    }
+
+    int swapped;
+    Song *current;
+    Song *prev = NULL;
+    Song *temp = NULL;
+
+    do {
+        swapped = 0;
+        current = *head;
+
+        while (current->next != NULL) {
+            // Compare singers using strcmp
+            if (strcmp(current->singer, current->next->singer) > 0) {
+                // Swap the nodes
+                Song *temp_node = current->next;
+                current->next = temp_node->next;
+                temp_node->next = current;
+
+                // If current is the head, update the head pointer
+                if (prev == NULL) {
+                    *head = temp_node;
+                } else {
+                    prev->next = temp_node;
+                }
+
+                swapped = 1;  // Indicate that a swap has been made
+                current = temp_node;  // Move current to next node
+            }
+            prev = current;
+            current = current->next;
+        }
+    } while (swapped);  // Continue if there was a swap in the previous pass
+}
+
+void save_playlist_to_file(Song *head, const char *filename) {
+
+}
