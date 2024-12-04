@@ -9,7 +9,7 @@ typedef struct Song {
     struct Song *next;
 } Song;
 
-// Fungsi
+// Function prototypes
 Song* create_song(const char *title, const char *singer);
 void add_song(Song **head, const char *title, const char *singer);
 void display_playlist(Song *head);
@@ -51,11 +51,10 @@ int main() {
                 display_playlist(playlist);
                 break;
             case 3:
-                printf("Title song you want to remove :");
+                printf("Title song you want to remove: ");
                 fgets(title, 100, stdin);
                 title[strcspn(title, "\n")] = '\0';
                 remove_song(&playlist, title);
-                printf("Song removed\n");
                 break;
             case 4:
                 sort_playlist_by_title(&playlist);
@@ -66,9 +65,16 @@ int main() {
                 display_playlist(playlist);
                 break;
             case 6:
-                //save playlist
+                printf("Enter filename to save: ");
+                fgets(filename, 100, stdin);
+                filename[strcspn(filename, "\n")] = '\0';
+                save_playlist_to_file(playlist, filename);
+                break;
+            case 7:
+                printf("Thank you for using the playlist manager!\n");
+                break;
             default:
-                printf("Thank you for using");
+                printf("Invalid choice. Please try again.\n");
         }
     } while (choice != 7);
 
@@ -85,18 +91,7 @@ Song* create_song(const char *title, const char *singer) {
         return NULL;
     }
 
-    // Allocate memory for the title and singer strings
-    *new_song->title = (char)malloc(strlen(title) + 1);  // +1 for null-terminator
-    *new_song->singer = (char)malloc(strlen(singer) + 1); // +1 for null-terminator1
-
-    if (new_song->title == NULL || new_song->singer == NULL) {
-        // Handle memory allocation failure for title or singer
-        printf("Memory allocation for title or singer failed!\n");
-        free(new_song);  // Free the previously allocated memory
-        return NULL;
-    }
-
-    // Copy the title and singer into the allocated memory
+    // Use strcpy to safely copy title and singer
     strcpy(new_song->title, title);
     strcpy(new_song->singer, singer);
 
@@ -109,6 +104,13 @@ Song* create_song(const char *title, const char *singer) {
 // Add a song to the playlist
 void add_song(Song **head, const char *title, const char *singer) {
     Song *new_song = create_song(title, singer);
+    
+    // Check if song creation was successful
+    if (new_song == NULL) {
+        printf("Failed to add song.\n");
+        return;
+    }
+
     new_song->next = *head;
     *head = new_song;
     printf("Song added: %s by %s\n", title, singer);
@@ -157,84 +159,92 @@ void remove_song(Song **head, const char *title) {
     printf("Song with title \"%s\" not found.\n", title);
 }
 
-
 void sort_playlist_by_title(Song **head) {
-if (*head == NULL || (*head)->next == NULL) {
+    if (*head == NULL || (*head)->next == NULL) {
         return;  // List is empty or contains only one song
     }
 
     int swapped;
-    Song *current;
-    Song *prev = NULL;
-    Song *temp = NULL;
+    Song *ptr1;
+    Song *lptr = NULL;
 
-    // Perform Bubble Sort on the linked list
     do {
         swapped = 0;
-        current = *head;
+        ptr1 = *head;
 
-        // Traverse the list and swap adjacent nodes if they are in the wrong order
-        while (current->next != NULL) {
-            if (strcmp(current->title, current->next->title) > 0) {
-                // Swap the nodes
-                Song *temp_node = current->next;
-                current->next = temp_node->next;
-                temp_node->next = current;
+        while (ptr1->next != lptr) {
+            // Compare titles
+            if (strcmp(ptr1->title, ptr1->next->title) > 0) {
+                // Swap data, not nodes
+                char temp_title[100];
+                char temp_singer[100];
 
-                // If the current node is the head, update the head pointer
-                if (prev == NULL) {
-                    *head = temp_node;
-                } else {
-                    prev->next = temp_node;
-                }
+                strcpy(temp_title, ptr1->title);
+                strcpy(temp_singer, ptr1->singer);
+
+                strcpy(ptr1->title, ptr1->next->title);
+                strcpy(ptr1->singer, ptr1->next->singer);
+
+                strcpy(ptr1->next->title, temp_title);
+                strcpy(ptr1->next->singer, temp_singer);
 
                 swapped = 1;
-                current = temp_node;  // Move current to the next node
             }
-            prev = current;
-            current = current->next;
+            ptr1 = ptr1->next;
         }
+        lptr = ptr1;
     } while (swapped);
 }
 
 void sort_playlist_by_singer(Song **head) {
-if (*head == NULL || (*head)->next == NULL) {
-        return;  // List is empty or has only one song
+    if (*head == NULL || (*head)->next == NULL) {
+        return;  // List is empty or contains only one song
     }
 
     int swapped;
-    Song *current;
-    Song *prev = NULL;
-    Song *temp = NULL;
+    Song *ptr1;
+    Song *lptr = NULL;
 
     do {
         swapped = 0;
-        current = *head;
+        ptr1 = *head;
 
-        while (current->next != NULL) {
-            // Compare singers using strcmp
-            if (strcmp(current->singer, current->next->singer) > 0) {
-                // Swap the nodes
-                Song *temp_node = current->next;
-                current->next = temp_node->next;
-                temp_node->next = current;
+        while (ptr1->next != lptr) {
+            // Compare singers
+            if (strcmp(ptr1->singer, ptr1->next->singer) > 0) {
+                // Swap data, not nodes
+                char temp_title[100];
+                char temp_singer[100];
 
-                // If current is the head, update the head pointer
-                if (prev == NULL) {
-                    *head = temp_node;
-                } else {
-                    prev->next = temp_node;
-                }
+                strcpy(temp_title, ptr1->title);
+                strcpy(temp_singer, ptr1->singer);
 
-                swapped = 1;  // Indicate that a swap has been made
-                current = temp_node;  // Move current to next node
+                strcpy(ptr1->title, ptr1->next->title);
+                strcpy(ptr1->singer, ptr1->next->singer);
+
+                strcpy(ptr1->next->title, temp_title);
+                strcpy(ptr1->next->singer, temp_singer);
+
+                swapped = 1;
             }
-            prev = current;
-            current = current->next;
+            ptr1 = ptr1->next;
         }
-    } while (swapped);  // Continue if there was a swap in the previous pass
+        lptr = ptr1;
+    } while (swapped);
 }
 
 void save_playlist_to_file(Song *head, const char *filename) {
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
 
+    while (head != NULL) {
+        fprintf(file, "%s - %s\n", head->title, head->singer);
+        head = head->next;
+    }
+
+    fclose(file);
+    printf("Playlist saved to %s\n", filename);
 }
