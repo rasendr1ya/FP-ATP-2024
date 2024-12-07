@@ -10,19 +10,101 @@ typedef struct Song {
     struct Song *next;
 } Song;
 
+// Playlist struct
+typedef struct Playlist {
+    char name[100];
+    Song *songs;
+    struct Playlist *next;
+} Playlist;
+
 // Function prototypes
 void trim_input(char *str);
-int case_insensitive_compare(const char *s1, const char *s2);
 Song* create_song(const char *title, const char *singer);
 void add_song(Song **head, const char *title, const char *singer);
-void display_playlist(Song *head);
+void display_songs(Song *head);
+void display_all_playlists(Playlist *head);
 void remove_song(Song **head, const char *title);
-void sort_playlist_by_title(Song **head);
-void sort_playlist_by_singer(Song **head);
-void save_playlist_to_file(Song *head, const char *filename);
-void free_playlist(Song *head);
+Playlist* create_playlist(const char *name);
+void add_playlist(Playlist **head, const char *name);
+Playlist* find_playlist(Playlist *head, const char *name);
+void free_all_playlists(Playlist *head);
 
-// Trim input to remove leading/trailing spaces or newlines
+int main() {
+    Playlist *playlists = NULL;
+    int choice;
+    char name[100], title[100], singer[100];
+
+    do {
+        printf("\n--- Playlist Management ---\n");
+        printf("1. Create New Playlist\n");
+        printf("2. Add Song to Playlist\n");
+        printf("3. Display All Playlists and Songs\n");
+        printf("4. Remove Song from Playlist\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        getchar(); // Consume leftover newline
+
+        switch (choice) {
+            case 1:
+                printf("Enter playlist name: ");
+                if (fgets(name, sizeof(name), stdin)) {
+                    trim_input(name);
+                    add_playlist(&playlists, name);
+                }
+                break;
+            case 2:
+                printf("Enter playlist name: ");
+                if (fgets(name, sizeof(name), stdin)) {
+                    trim_input(name);
+                    Playlist *playlist = find_playlist(playlists, name);
+                    if (playlist) {
+                        printf("Enter song title: ");
+                        if (fgets(title, sizeof(title), stdin)) {
+                            trim_input(title);
+                            printf("Enter singer: ");
+                            if (fgets(singer, sizeof(singer), stdin)) {
+                                trim_input(singer);
+                                add_song(&playlist->songs, title, singer);
+                            }
+                        }
+                    } else {
+                        printf("Playlist not found.\n");
+                    }
+                }
+                break;
+            case 3:
+                display_all_playlists(playlists);
+                break;
+            case 4:
+                printf("Enter playlist name: ");
+                if (fgets(name, sizeof(name), stdin)) {
+                    trim_input(name);
+                    Playlist *playlist = find_playlist(playlists, name);
+                    if (playlist) {
+                        printf("Enter song title to remove: ");
+                        if (fgets(title, sizeof(title), stdin)) {
+                            trim_input(title);
+                            remove_song(&playlist->songs, title);
+                        }
+                    } else {
+                        printf("Playlist not found.\n");
+                    }
+                }
+                break;
+            case 5:
+                free_all_playlists(playlists);
+                printf("Goodbye!\n");
+                break;
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while (choice != 5);
+
+    return 0;
+}
+
+// Helper function to trim input
 void trim_input(char *str) {
     int len = strlen(str);
 
@@ -43,87 +125,6 @@ void trim_input(char *str) {
         memmove(str, str + start, end - start + 1);
     }
     str[end - start + 1] = '\0';
-}
-
-// Case-insensitive comparison for sorting
-int case_insensitive_compare(const char *s1, const char *s2) {
-    while (*s1 && *s2) {
-        int diff = tolower((unsigned char)*s1) - tolower((unsigned char)*s2);
-        if (diff != 0) {
-            return diff;
-        }
-        s1++;
-        s2++;
-    }
-    return tolower((unsigned char)*s1) - tolower((unsigned char)*s2);
-}
-
-int main() {
-    Song *playlist = NULL;
-    int choice;
-    char title[100], singer[100];
-    char filename[100];
-
-    do {
-        printf("\n--- Playlist Management ---\n");
-        printf("1. Add A Song\n");
-        printf("2. Display The Playlist\n");
-        printf("3. Remove A Song\n");
-        printf("4. Sort Song by Title\n");
-        printf("5. Sort Song by Singer\n");
-        printf("6. Save Playlist to File\n");
-        printf("7. Exit\n");
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
-        getchar();  // Consume leftover newline
-
-        switch (choice) {
-            case 1:
-                printf("Enter song title: ");
-                if (fgets(title, sizeof(title), stdin)) {
-                    trim_input(title);
-                    printf("Enter singer: ");
-                    if (fgets(singer, sizeof(singer), stdin)) {
-                        trim_input(singer);
-                        add_song(&playlist, title, singer);
-                    }
-                }
-                break;
-            case 2:
-                display_playlist(playlist);
-                break;
-            case 3:
-                printf("Title of song to remove: ");
-                if (fgets(title, sizeof(title), stdin)) {
-                    trim_input(title);
-                    remove_song(&playlist, title);
-                }
-                break;
-            case 4:
-                sort_playlist_by_title(&playlist);
-                display_playlist(playlist);
-                break;
-            case 5:
-                sort_playlist_by_singer(&playlist);
-                display_playlist(playlist);
-                break;
-            case 6:
-                printf("Enter filename to save: ");
-                if (fgets(filename, sizeof(filename), stdin)) {
-                    trim_input(filename);
-                    save_playlist_to_file(playlist, filename);
-                }
-                break;
-            case 7:
-                free_playlist(playlist);
-                printf("Thank you for using the playlist manager!\n");
-                break;
-            default:
-                printf("Invalid choice. Please try again.\n");
-        }
-    } while (choice != 7);
-
-    return 0;
 }
 
 // Create a new song
@@ -149,15 +150,124 @@ void add_song(Song **head, const char *title, const char *singer) {
     printf("Song added: %s by %s\n", title, singer);
 }
 
-// Display all songs
-void display_playlist(Song *head) {
+void sort_songs(Song **song_array, int count) {
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
+            if (strcmp(song_array[j]->title, song_array[j + 1]->title) > 0) {
+                Song *temp = song_array[j];
+                song_array[j] = song_array[j + 1];
+                song_array[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void display_songs(Song *head) {
     if (!head) {
-        printf("Playlist is empty.\n");
+        printf("  No songs in this playlist.\n");
         return;
     }
-    int index = 1;
+
+    // Hitung jumlah lagu
+    int count = 0;
+    Song *temp = head;
+    while (temp) {
+        count++;
+        temp = temp->next;
+    }
+
+    // Salin lagu ke array sementara
+    Song **song_array = (Song **)malloc(count * sizeof(Song *));
+    if (!song_array) {
+        printf("Memory allocation failed!\n");
+        return;
+    }
+
+    temp = head;
+    for (int i = 0; i < count; i++) {
+        song_array[i] = temp;
+        temp = temp->next;
+    }
+
+    // Urutkan array
+    sort_songs(song_array, count);
+
+    // Tampilkan lagu yang sudah diurutkan
+    for (int i = 0; i < count; i++) {
+        printf("  %d. %s by %s\n", i + 1, song_array[i]->title, song_array[i]->singer);
+    }
+
+    free(song_array);
+}
+
+void write_playlist_to_file(Playlist *playlist) {
+    if (!playlist) return;
+
+    // Buat nama file berdasarkan nama playlist
+    char filename[120];
+    snprintf(filename, sizeof(filename), "%s.txt", playlist->name);
+
+    // Buka file untuk menulis
+    FILE *file = fopen(filename, "w");
+    if (!file) {
+        printf("Error: Could not create file %s\n", filename);
+        return;
+    }
+
+    fprintf(file, "Playlist: %s\n", playlist->name);
+
+    if (!playlist->songs) {
+        fprintf(file, "  No songs in this playlist.\n");
+    } else {
+        // Hitung jumlah lagu dan salin ke array
+        int count = 0;
+        Song *temp = playlist->songs;
+        while (temp) {
+            count++;
+            temp = temp->next;
+        }
+
+        Song **song_array = (Song **)malloc(count * sizeof(Song *));
+        if (!song_array) {
+            fprintf(file, "Memory allocation failed.\n");
+            fclose(file);
+            return;
+        }
+
+        temp = playlist->songs;
+        for (int i = 0; i < count; i++) {
+            song_array[i] = temp;
+            temp = temp->next;
+        }
+
+        // Urutkan lagu
+        sort_songs(song_array, count);
+
+        // Tulis lagu yang sudah diurutkan ke file
+        for (int i = 0; i < count; i++) {
+            fprintf(file, "  %d. %s by %s\n", i + 1, song_array[i]->title, song_array[i]->singer);
+        }
+
+        free(song_array);
+    }
+
+    fclose(file);
+    printf("Playlist %s has been saved to %s\n", playlist->name, filename);
+}
+
+void display_all_playlists(Playlist *head) {
+    if (!head) {
+        printf("No playlists available.\n");
+        return;
+    }
+
     while (head) {
-        printf("%d. %s by %s\n", index++, head->title, head->singer);
+        printf("Playlist: %s\n", head->name);
+        display_songs(head->songs);
+        
+        // Tulis isi playlist ke file
+        write_playlist_to_file(head);
+
         head = head->next;
     }
 }
@@ -189,84 +299,52 @@ void remove_song(Song **head, const char *title) {
     }
 }
 
-// Sort playlist by title (case-insensitive)
-void sort_playlist_by_title(Song **head) {
-    if (!*head || !(*head)->next) return;
-
-    int swapped;
-    Song *ptr1;
-    Song *lptr = NULL;
-
-    do {
-        swapped = 0;
-        ptr1 = *head;
-
-        while (ptr1->next != lptr) {
-            if (case_insensitive_compare(ptr1->title, ptr1->next->title) > 0) {
-                char temp_title[100], temp_singer[100];
-                strcpy(temp_title, ptr1->title);
-                strcpy(temp_singer, ptr1->singer);
-                strcpy(ptr1->title, ptr1->next->title);
-                strcpy(ptr1->singer, ptr1->next->singer);
-                strcpy(ptr1->next->title, temp_title);
-                strcpy(ptr1->next->singer, temp_singer);
-                swapped = 1;
-            }
-            ptr1 = ptr1->next;
-        }
-        lptr = ptr1;
-    } while (swapped);
-}
-
-// Sort playlist by singer (case-insensitive)
-void sort_playlist_by_singer(Song **head) {
-    if (!*head || !(*head)->next) return;
-
-    int swapped;
-    Song *ptr1;
-    Song *lptr = NULL;
-
-    do {
-        swapped = 0;
-        ptr1 = *head;
-
-        while (ptr1->next != lptr) {
-            if (case_insensitive_compare(ptr1->singer, ptr1->next->singer) > 0) {
-                char temp_title[100], temp_singer[100];
-                strcpy(temp_title, ptr1->title);
-                strcpy(temp_singer, ptr1->singer);
-                strcpy(ptr1->title, ptr1->next->title);
-                strcpy(ptr1->singer, ptr1->next->singer);
-                strcpy(ptr1->next->title, temp_title);
-                strcpy(ptr1->next->singer, temp_singer);
-                swapped = 1;
-            }
-            ptr1 = ptr1->next;
-        }
-        lptr = ptr1;
-    } while (swapped);
-}
-
-// Save playlist to file
-void save_playlist_to_file(Song *head, const char *filename) {
-    FILE *file = fopen(filename, "w");
-    if (!file) {
-        printf("Failed to open file.\n");
-        return;
+// Create a new playlist
+Playlist* create_playlist(const char *name) {
+    Playlist *new_playlist = (Playlist *)malloc(sizeof(Playlist));
+    if (!new_playlist) {
+        printf("Memory allocation failed!\n");
+        return NULL;
     }
+    strcpy(new_playlist->name, name);
+    new_playlist->songs = NULL;
+    new_playlist->next = NULL;
+    return new_playlist;
+}
+
+// Add a playlist to the list
+void add_playlist(Playlist **head, const char *name) {
+    Playlist *new_playlist = create_playlist(name);
+    if (!new_playlist) return;
+
+    new_playlist->next = *head;
+    *head = new_playlist;
+    printf("Playlist created: %s\n", name);
+}
+
+// Find a playlist by name
+Playlist* find_playlist(Playlist *head, const char *name) {
     while (head) {
-        fprintf(file, "%s - %s\n", head->title, head->singer);
+        if (strcmp(head->name, name) == 0) {
+            return head;
+        }
         head = head->next;
     }
-    fclose(file);
-    printf("Playlist saved to %s\n", filename);
+    return NULL;
 }
 
-// Free playlist memory
-void free_playlist(Song *head) {
+// Free all playlists and their songs
+void free_all_playlists(Playlist *head) {
     while (head) {
-        Song *temp = head;
+        Playlist *temp = head;
         head = head->next;
+
+        Song *song = temp->songs;
+        while (song) {
+            Song *song_temp = song;
+            song = song->next;
+            free(song_temp);
+        }
         free(temp);
     }
 }
