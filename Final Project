@@ -21,15 +21,13 @@ typedef struct Playlist {
 void trim_input(char *str);
 Song* create_song(const char *title, const char *singer);
 void add_song(Song **head, const char *title, const char *singer);
-void display_songs(Song *head, int sort_by); // 0 for title, 1 for singer
+void display_songs(Song *head);
 void display_all_playlists(Playlist *head);
 void remove_song(Song **head, const char *title);
 Playlist* create_playlist(const char *name);
 void add_playlist(Playlist **head, const char *name);
 Playlist* find_playlist(Playlist *head, const char *name);
 void free_all_playlists(Playlist *head);
-void sort_songs(Song **song_array, int count, int sort_by); // 0 for title, 1 for singer
-void write_playlist_to_file(Playlist *playlist);
 
 int main() {
     Playlist *playlists = NULL;
@@ -41,11 +39,8 @@ int main() {
         printf("1. Create New Playlist\n");
         printf("2. Add Song to Playlist\n");
         printf("3. Display All Playlists and Songs\n");
-        printf("4. Sort songs by title\n");
-        printf("5. Sort songs by singer\n");
-        printf("6. Save playlists to txt file\n");
-        printf("7. Remove Song from Playlist\n");
-        printf("8. Exit\n");
+        printf("4. Remove Song from Playlist\n");
+        printf("5. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
         getchar(); // Consume leftover newline
@@ -87,35 +82,6 @@ int main() {
                     trim_input(name);
                     Playlist *playlist = find_playlist(playlists, name);
                     if (playlist) {
-                        printf("Sorting songs by title...\n");
-                        display_songs(playlist->songs, 0); // 0 for title sorting
-                    } else {
-                        printf("Playlist not found.\n");
-                    }
-                }
-                break;
-            case 5:
-                printf("Enter playlist name: ");
-                if (fgets(name, sizeof(name), stdin)) {
-                    trim_input(name);
-                    Playlist *playlist = find_playlist(playlists, name);
-                    if (playlist) {
-                        printf("Sorting songs by singer...\n");
-                        display_songs(playlist->songs, 1); // 1 for singer sorting
-                    } else {
-                        printf("Playlist not found.\n");
-                    }
-                }
-                break;
-            case 6:
-                write_playlist_to_file(playlists);
-                break;
-            case 7:
-                printf("Enter playlist name: ");
-                if (fgets(name, sizeof(name), stdin)) {
-                    trim_input(name);
-                    Playlist *playlist = find_playlist(playlists, name);
-                    if (playlist) {
                         printf("Enter song title to remove: ");
                         if (fgets(title, sizeof(title), stdin)) {
                             trim_input(title);
@@ -126,14 +92,14 @@ int main() {
                     }
                 }
                 break;
-            case 8:
+            case 5:
                 free_all_playlists(playlists);
                 printf("Goodbye!\n");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
-    } while (choice != 8);
+    } while (choice != 5);
 
     return 0;
 }
@@ -184,20 +150,10 @@ void add_song(Song **head, const char *title, const char *singer) {
     printf("Song added: %s by %s\n", title, singer);
 }
 
-// Function to sort songs by either title or singer
-void sort_songs(Song **song_array, int count, int sort_by) {
+void sort_songs(Song **song_array, int count) {
     for (int i = 0; i < count - 1; i++) {
         for (int j = 0; j < count - i - 1; j++) {
-            int cmp_result = 0;
-            if (sort_by == 0) {
-                // Compare by title
-                cmp_result = strcmp(song_array[j]->title, song_array[j + 1]->title);
-            } else if (sort_by == 1) {
-                // Compare by singer
-                cmp_result = strcmp(song_array[j]->singer, song_array[j + 1]->singer);
-            }
-
-            if (cmp_result > 0) {
+            if (strcmp(song_array[j]->title, song_array[j + 1]->title) > 0) {
                 Song *temp = song_array[j];
                 song_array[j] = song_array[j + 1];
                 song_array[j + 1] = temp;
@@ -206,13 +162,13 @@ void sort_songs(Song **song_array, int count, int sort_by) {
     }
 }
 
-void display_songs(Song *head, int sort_by) {
+void display_songs(Song *head) {
     if (!head) {
         printf("  No songs in this playlist.\n");
         return;
     }
 
-    // Count number of songs
+    // Hitung jumlah lagu
     int count = 0;
     Song *temp = head;
     while (temp) {
@@ -220,7 +176,7 @@ void display_songs(Song *head, int sort_by) {
         temp = temp->next;
     }
 
-    // Copy songs to an array
+    // Salin lagu ke array sementara
     Song **song_array = (Song **)malloc(count * sizeof(Song *));
     if (!song_array) {
         printf("Memory allocation failed!\n");
@@ -233,10 +189,10 @@ void display_songs(Song *head, int sort_by) {
         temp = temp->next;
     }
 
-    // Sort the songs
-    sort_songs(song_array, count, sort_by);
+    // Urutkan array
+    sort_songs(song_array, count);
 
-    // Display sorted songs
+    // Tampilkan lagu yang sudah diurutkan
     for (int i = 0; i < count; i++) {
         printf("  %d. %s by %s\n", i + 1, song_array[i]->title, song_array[i]->singer);
     }
@@ -244,29 +200,15 @@ void display_songs(Song *head, int sort_by) {
     free(song_array);
 }
 
-void display_all_playlists(Playlist *head) {
-    if (!head) {
-        printf("No playlists available.\n");
-        return;
-    }
-
-    while (head) {
-        printf("Playlist: %s\n", head->name);
-        display_songs(head->songs, 0); // Default to sorting by title
-        head = head->next;
-    }
-}
-
 void write_playlist_to_file(Playlist *playlist) {
     if (!playlist) return;
 
-    // Create a filename based on the playlist's name
+    // Buat nama file berdasarkan nama playlist
     char filename[120];
     snprintf(filename, sizeof(filename), "%s.txt", playlist->name);
 
-    // Open file for writing
+    // Buka file untuk menulis
     FILE *file = fopen(filename, "w");
-
     if (!file) {
         printf("Error: Could not create file %s\n", filename);
         return;
@@ -277,7 +219,7 @@ void write_playlist_to_file(Playlist *playlist) {
     if (!playlist->songs) {
         fprintf(file, "  No songs in this playlist.\n");
     } else {
-        // Count the number of songs and copy to an array
+        // Hitung jumlah lagu dan salin ke array
         int count = 0;
         Song *temp = playlist->songs;
         while (temp) {
@@ -285,7 +227,6 @@ void write_playlist_to_file(Playlist *playlist) {
             temp = temp->next;
         }
 
-        // Copy songs to an array
         Song **song_array = (Song **)malloc(count * sizeof(Song *));
         if (!song_array) {
             fprintf(file, "Memory allocation failed.\n");
@@ -299,16 +240,36 @@ void write_playlist_to_file(Playlist *playlist) {
             temp = temp->next;
         }
 
-        // Write song details to the file
+        // Urutkan lagu
+        sort_songs(song_array, count);
+
+        // Tulis lagu yang sudah diurutkan ke file
         for (int i = 0; i < count; i++) {
             fprintf(file, "  %d. %s by %s\n", i + 1, song_array[i]->title, song_array[i]->singer);
         }
 
-        free(song_array); // Free the array after writing
+        free(song_array);
     }
 
     fclose(file);
     printf("Playlist %s has been saved to %s\n", playlist->name, filename);
+}
+
+void display_all_playlists(Playlist *head) {
+    if (!head) {
+        printf("No playlists available.\n");
+        return;
+    }
+
+    while (head) {
+        printf("Playlist: %s\n", head->name);
+        display_songs(head->songs);
+        
+        // Tulis isi playlist ke file
+        write_playlist_to_file(head);
+
+        head = head->next;
+    }
 }
 
 // Remove a song by title
