@@ -29,12 +29,14 @@ void add_playlist(Playlist **head, const char *name);
 Playlist* find_playlist(Playlist *head, const char *name);
 void free_all_playlists(Playlist *head);
 void sort_songs(Song **song_array, int count, int sort_type);
+void read_from_file(Playlist **head, const char *filename);
+void export_playlists_to_files(Playlist *head);
 
 // Fungsi utama
 int main() {
     Playlist *playlists = NULL;
     int choice;
-    char name[100], title[100], singer[100];
+    char name[100], title[100], singer[100], filename[100];
     int sort_type = 0; // 0 = urutkan berdasarkan judul, 1 = urutkan berdasarkan penyanyi
 
     do {
@@ -44,7 +46,9 @@ int main() {
         printf("3. Display All Playlists and Songs\n");
         printf("4. Remove Song from Playlist\n");
         printf("5. Toggle Sort Type\n");
-        printf("6. Exit\n");
+        printf("6. Read Playlists from File\n");
+        printf("7. Export Playlists to Separate Files\n");
+        printf("8. Exit\n");
         printf("Current Sort: %s\n", sort_type ? "Artist" : "Title");
         printf("Enter your choice: ");
         scanf("%d", &choice);
@@ -102,13 +106,23 @@ int main() {
                 printf("Sorting changed to: %s\n", sort_type ? "Artist" : "Title");
                 break;
             case 6:
+                printf("Enter filename to read from: ");
+                if (fgets(filename, sizeof(filename), stdin)) {
+                    trim_input(filename);
+                    read_from_file(&playlists, filename);
+                }
+                break;
+            case 7:
+                export_playlists_to_files(playlists);
+                break;
+            case 8:
                 free_all_playlists(playlists);
                 printf("Goodbye!\n");
                 break;
             default:
                 printf("Invalid choice. Please try again.\n");
         }
-    } while (choice != 6);
+    } while (choice != 8);
 
     return 0;
 }
@@ -263,5 +277,58 @@ void free_all_playlists(Playlist *head) {
         }
         head = head->next;
         free(temp_playlist);
+    }
+}
+
+// Fungsi untuk membaca playlist dari file
+void read_from_file(Playlist **head, const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Could not open file %s\n", filename);
+        return;
+    }
+
+    char line[300];
+    while (fgets(line, sizeof(line), file)) {
+        trim_input(line);
+        char *playlist_name = strtok(line, ",");
+        char *title = strtok(NULL, ",");
+        char *singer = strtok(NULL, ",");
+
+        if (playlist_name && title && singer) {
+            Playlist *playlist = find_playlist(*head, playlist_name);
+            if (!playlist) {
+                add_playlist(head, playlist_name);
+                playlist = *head;
+            }
+            add_song(&playlist->songs, title, singer);
+        }
+    }
+
+    fclose(file);
+    printf("Playlists loaded from %s\n", filename);
+}
+
+// Fungsi untuk mengekspor tiap playlist ke file terpisah
+void export_playlists_to_files(Playlist *head) {
+    while (head) {
+        char filename[150];
+        snprintf(filename, sizeof(filename), "%s.txt", head->name);
+        FILE *file = fopen(filename, "w");
+        if (!file) {
+            printf("Could not open file %s\n", filename);
+            head = head->next;
+            continue;
+        }
+
+        Song *song = head->songs;
+        while (song) {
+            fprintf(file, "%s,%s\n", song->title, song->singer);
+            song = song->next;
+        }
+
+        fclose(file);
+        printf("Playlist '%s' exported to '%s'\n", head->name, filename);
+        head = head->next;
     }
 }
