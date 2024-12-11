@@ -5,16 +5,16 @@
 
 // Struktur data untuk lagu
 typedef struct Song {
-    char title[100];        // Judul lagu
-    char singer[100];       // Nama penyanyi
-    struct Song *next;      // Pointer ke lagu berikutnya dalam playlist
+    char title[100];
+    char singer[100];
+    struct Song *next;
 } Song;
 
 // Struktur data untuk playlist
 typedef struct Playlist {
-    char name[100];         // Nama playlist
-    Song *songs;            // Pointer ke lagu pertama dalam playlist
-    struct Playlist *next;  // Pointer ke playlist berikutnya
+    char name[100];
+    Song *songs;
+    struct Playlist *next;
 } Playlist;
 
 // Prototipe fungsi
@@ -29,133 +29,6 @@ void add_playlist(Playlist **head, const char *name);
 Playlist* find_playlist(Playlist *head, const char *name);
 void free_all_playlists(Playlist *head);
 void sort_songs(Song **song_array, int count, int sort_type);
-void write_playlist_to_file(Playlist *playlist, int sort_type);
-
-// Fungsi untuk menghapus spasi di awal dan akhir input
-void trim_input(char *str) {
-    int len = strlen(str);
-
-    // Menghapus spasi di awal
-    int start = 0;
-    while (start < len && isspace((unsigned char)str[start])) {
-        start++;
-    }
-
-    // Menghapus spasi di akhir
-    int end = len - 1;
-    while (end >= start && isspace((unsigned char)str[end])) {
-        end--;
-    }
-
-    // Memindahkan string dan menambahkan karakter null-terminator
-    if (start > 0 || end < len - 1) {
-        memmove(str, str + start, end - start + 1);
-    }
-    str[end - start + 1] = '\0';
-}
-
-// Fungsi untuk membuat lagu baru
-Song* create_song(const char *title, const char *singer) {
-    Song *new_song = (Song *)malloc(sizeof(Song));
-    if (!new_song) {
-        printf("Memory allocation failed!\n");
-        return NULL;
-    }
-    strcpy(new_song->title, title);    // Menyalin judul lagu
-    strcpy(new_song->singer, singer); // Menyalin nama penyanyi
-    new_song->next = NULL;            // Mengatur pointer next ke NULL
-    return new_song;
-}
-
-// Fungsi untuk menambahkan lagu ke playlist
-void add_song(Song **head, const char *title, const char *singer) {
-    Song *new_song = create_song(title, singer);
-    if (!new_song) return;
-
-    new_song->next = *head; // Menambahkan lagu di awal daftar
-    *head = new_song;
-    printf("Song added: %s by %s\n", title, singer);
-}
-
-// Fungsi untuk mengurutkan lagu berdasarkan judul atau penyanyi
-void sort_songs(Song **song_array, int count, int sort_type) {
-    for (int i = 0; i < count - 1; i++) {
-        for (int j = 0; j < count - i - 1; j++) {
-            int compare_result;
-            
-            // Membandingkan berdasarkan jenis pengurutan
-            if (sort_type == 0) { // Urutkan berdasarkan judul
-                compare_result = strcmp(song_array[j]->title, song_array[j + 1]->title);
-            } else { // Urutkan berdasarkan penyanyi
-                compare_result = strcmp(song_array[j]->singer, song_array[j + 1]->singer);
-            }
-            
-            // Menukar posisi jika perlu
-            if (compare_result > 0) {
-                Song *temp = song_array[j];
-                song_array[j] = song_array[j + 1];
-                song_array[j + 1] = temp;
-            }
-        }
-    }
-}
-
-// Fungsi untuk menampilkan semua lagu dalam playlist
-void display_songs(Song *head, int sort_type) {
-    if (!head) {
-        printf("  No songs in this playlist.\n");
-        return;
-    }
-
-    // Hitung jumlah lagu
-    int count = 0;
-    Song *temp = head;
-    while (temp) {
-        count++;
-        temp = temp->next;
-    }
-
-    // Salin lagu ke array sementara
-    Song **song_array = (Song **)malloc(count * sizeof(Song *));
-    if (!song_array) {
-        printf("Memory allocation failed!\n");
-        return;
-    }
-
-    temp = head;
-    for (int i = 0; i < count; i++) {
-        song_array[i] = temp;
-        temp = temp->next;
-    }
-
-    // Urutkan array
-    sort_songs(song_array, count, sort_type);
-
-    // Tampilkan lagu yang sudah diurutkan
-    for (int i = 0; i < count; i++) {
-        printf("  %d. %s by %s\n", i + 1, song_array[i]->title, song_array[i]->singer);
-    }
-
-    free(song_array); // Bebaskan memori array
-}
-
-// Fungsi untuk menampilkan semua playlist dan lagunya
-void display_all_playlists(Playlist *head, int sort_type) {
-    if (!head) {
-        printf("No playlists available.\n");
-        return;
-    }
-
-    while (head) {
-        printf("Playlist: %s\n", head->name);
-        display_songs(head->songs, sort_type);
-        
-        // Tulis isi playlist ke file
-        write_playlist_to_file(head, sort_type);
-
-        head = head->next;
-    }
-}
 
 // Fungsi utama
 int main() {
@@ -165,7 +38,6 @@ int main() {
     int sort_type = 0; // 0 = urutkan berdasarkan judul, 1 = urutkan berdasarkan penyanyi
 
     do {
-        // Menu utama
         printf("\n--- Playlist Management ---\n");
         printf("1. Create New Playlist\n");
         printf("2. Add Song to Playlist\n");
@@ -176,17 +48,17 @@ int main() {
         printf("Current Sort: %s\n", sort_type ? "Artist" : "Title");
         printf("Enter your choice: ");
         scanf("%d", &choice);
-        getchar(); // Konsumsi newline tersisa
+        getchar(); // Consume newline
 
         switch (choice) {
-            case 1: // Membuat playlist baru
+            case 1:
                 printf("Enter playlist name: ");
                 if (fgets(name, sizeof(name), stdin)) {
                     trim_input(name);
                     add_playlist(&playlists, name);
                 }
                 break;
-            case 2: // Menambahkan lagu ke playlist
+            case 2:
                 printf("Enter playlist name: ");
                 if (fgets(name, sizeof(name), stdin)) {
                     trim_input(name);
@@ -206,10 +78,10 @@ int main() {
                     }
                 }
                 break;
-            case 3: // Menampilkan semua playlist
+            case 3:
                 display_all_playlists(playlists, sort_type);
                 break;
-            case 4: // Menghapus lagu dari playlist
+            case 4:
                 printf("Enter playlist name: ");
                 if (fgets(name, sizeof(name), stdin)) {
                     trim_input(name);
@@ -225,11 +97,11 @@ int main() {
                     }
                 }
                 break;
-            case 5: // Mengubah jenis pengurutan
+            case 5:
                 sort_type = !sort_type;
                 printf("Sorting changed to: %s\n", sort_type ? "Artist" : "Title");
                 break;
-            case 6: // Keluar dari program
+            case 6:
                 free_all_playlists(playlists);
                 printf("Goodbye!\n");
                 break;
@@ -239,4 +111,157 @@ int main() {
     } while (choice != 6);
 
     return 0;
+}
+
+// Fungsi untuk menghapus spasi di awal dan akhir input
+void trim_input(char *str) {
+    int len = strlen(str);
+    int start = 0;
+    while (start < len && isspace((unsigned char)str[start])) start++;
+    int end = len - 1;
+    while (end >= start && isspace((unsigned char)str[end])) end--;
+    memmove(str, str + start, end - start + 1);
+    str[end - start + 1] = '\0';
+}
+
+// Fungsi untuk membuat lagu baru
+Song* create_song(const char *title, const char *singer) {
+    Song *new_song = (Song *)malloc(sizeof(Song));
+    if (!new_song) {
+        printf("Memory allocation failed!\n");
+        return NULL;
+    }
+    strcpy(new_song->title, title);
+    strcpy(new_song->singer, singer);
+    new_song->next = NULL;
+    return new_song;
+}
+
+// Fungsi untuk menambahkan lagu
+void add_song(Song **head, const char *title, const char *singer) {
+    Song *new_song = create_song(title, singer);
+    if (!new_song) return;
+    new_song->next = *head;
+    *head = new_song;
+    printf("Song added: %s by %s\n", title, singer);
+}
+
+// Fungsi untuk mengurutkan lagu
+void sort_songs(Song **song_array, int count, int sort_type) {
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
+            int compare_result = sort_type == 0
+                ? strcmp(song_array[j]->title, song_array[j + 1]->title)
+                : strcmp(song_array[j]->singer, song_array[j + 1]->singer);
+            if (compare_result > 0) {
+                Song *temp = song_array[j];
+                song_array[j] = song_array[j + 1];
+                song_array[j + 1] = temp;
+            }
+        }
+    }
+}
+
+// Fungsi untuk menampilkan lagu
+void display_songs(Song *head, int sort_type) {
+    if (!head) {
+        printf("  No songs in this playlist.\n");
+        return;
+    }
+    int count = 0;
+    Song *temp = head;
+    while (temp) {
+        count++;
+        temp = temp->next;
+    }
+    Song **song_array = (Song **)malloc(count * sizeof(Song *));
+    if (!song_array) {
+        printf("Memory allocation failed!\n");
+        return;
+    }
+    temp = head;
+    for (int i = 0; i < count; i++) {
+        song_array[i] = temp;
+        temp = temp->next;
+    }
+    sort_songs(song_array, count, sort_type);
+    for (int i = 0; i < count; i++) {
+        printf("  %d. %s by %s\n", i + 1, song_array[i]->title, song_array[i]->singer);
+    }
+    free(song_array);
+}
+
+// Fungsi untuk menampilkan semua playlist
+void display_all_playlists(Playlist *head, int sort_type) {
+    if (!head) {
+        printf("No playlists available.\n");
+        return;
+    }
+    while (head) {
+        printf("Playlist: %s\n", head->name);
+        display_songs(head->songs, sort_type);
+        head = head->next;
+    }
+}
+
+// Fungsi untuk menghapus lagu
+void remove_song(Song **head, const char *title) {
+    Song *temp = *head, *prev = NULL;
+    while (temp && strcmp(temp->title, title) != 0) {
+        prev = temp;
+        temp = temp->next;
+    }
+    if (!temp) {
+        printf("Song not found.\n");
+        return;
+    }
+    if (!prev) *head = temp->next;
+    else prev->next = temp->next;
+    free(temp);
+    printf("Song removed: %s\n", title);
+}
+
+// Fungsi untuk membuat playlist baru
+Playlist* create_playlist(const char *name) {
+    Playlist *new_playlist = (Playlist *)malloc(sizeof(Playlist));
+    if (!new_playlist) {
+        printf("Memory allocation failed!\n");
+        return NULL;
+    }
+    strcpy(new_playlist->name, name);
+    new_playlist->songs = NULL;
+    new_playlist->next = NULL;
+    return new_playlist;
+}
+
+// Fungsi untuk menambahkan playlist
+void add_playlist(Playlist **head, const char *name) {
+    Playlist *new_playlist = create_playlist(name);
+    if (!new_playlist) return;
+    new_playlist->next = *head;
+    *head = new_playlist;
+    printf("Playlist created: %s\n", name);
+}
+
+// Fungsi untuk menemukan playlist
+Playlist* find_playlist(Playlist *head, const char *name) {
+    while (head && strcmp(head->name, name) != 0) {
+        head = head->next;
+    }
+    return head;
+}
+
+// Fungsi untuk membebaskan semua playlist
+void free_all_playlists(Playlist *head) {
+    while (head) {
+        Playlist *temp_playlist = head;
+        Song *song = head->songs;
+        while (song) {
+            Song *temp_song = song;
+            song = song->next;
+            free(temp_song);
+        }
+        head = head->next;
+        free(temp_playlist);
+    }
 }
